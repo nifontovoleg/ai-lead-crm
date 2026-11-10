@@ -1,6 +1,8 @@
 import json
 from datetime import datetime, timezone
 
+import httpx
+from openai import APITimeoutError
 from pydantic import ValidationError
 
 from .models import Lead, Score, SOURCES
@@ -55,7 +57,8 @@ class DemoScorer:
 class ProxyScorer:
     def __init__(self, settings):
         from openai import OpenAI
-        self.client = OpenAI(api_key=settings.api_key, base_url=settings.base_url, max_retries=0, timeout=settings.timeout)
+        self.client = OpenAI(api_key=settings.api_key, base_url=settings.base_url, max_retries=0,
+                             timeout=httpx.Timeout(settings.timeout, connect=min(8, settings.timeout)))
         self.model = settings.model
         self.version = f"proxyapi:{self.model}:ai-score-v2"
         self.label = f"ProxyAPI · {self.model}"
@@ -119,13 +122,29 @@ class ProxyScorer:
             return Score.model_validate_json(choice.message.content)
         except ValidationError:
             raise ScoringFailure("AI_INVALID_RESPONSE") from None
+
+    def _request_score(self, lead):
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": RULES},
+                {"role": "user", "content": json.dumps(lead.features(), ensure_ascii=False)},
+            ],
+            "response_format": {"type": "json_object"},
+            "max_completion_tokens": 1600,
+        }
+        for attempt in range(3):
+            try:
+                return self.client.chat.completions.create(**payload)
+            except APITimeoutError as exc:
+                # A connect timeout happens before sending the generation request.
+                # Read and write timeouts can occur after it has reached the provider.
+                if attempt == 2 or not isinstance(exc.__cause__, httpx.ConnectTimeout):
+                    raise
+
     def score(self, lead):
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "system", "content": RULES}, {"role": "user", "content": json.dumps(lead.features(), ensure_ascii=False)}],
-                response_format={"type": "json_object"}, max_completion_tokens=1600,
-            )
+            response = self._request_score(lead)
         except Exception as exc:
             self._audit_request_error(lead, exc)
             raise
