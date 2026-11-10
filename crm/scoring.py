@@ -41,7 +41,7 @@ def rubric_score(lead: Lead):
 
 class DemoScorer:
     version = "demo-rubric-v1"
-    label = "ДЕМО · правила без AI"
+    label = "Локальные правила"
 
     def score(self, lead):
         score = rubric_score(lead)

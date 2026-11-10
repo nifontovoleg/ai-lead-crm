@@ -18,7 +18,7 @@ def atomic_json(path, value):
 
 class LocalStore:
     namespace = "demo"
-    url = "Локальное демо"
+    url = "Локальное хранилище"
 
     def __init__(self, path, seed):
         self.path = Path(path)

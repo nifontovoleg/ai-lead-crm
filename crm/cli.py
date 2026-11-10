@@ -10,11 +10,11 @@ from .runtime import process
 
 def main():
     parser = argparse.ArgumentParser(description="CRM в Google Sheets с AI-скорингом")
-    parser.add_argument("command", choices=["demo", "process", "init-sheets", "check"])
+    parser.add_argument("command", choices=["local", "demo", "process", "init-sheets", "check"])
     args = parser.parse_args()
     try:
         cfg = Settings.load()
-        if args.command == "demo":
+        if args.command in {"local", "demo"}:
             result = process(replace(cfg, mode="demo", batch_size=20))
             print(result.model_dump_json(indent=2))
             print(f"Отчёт: {cfg.data_dir / 'demo/dashboard.html'}")

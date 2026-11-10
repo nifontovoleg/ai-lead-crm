@@ -140,7 +140,7 @@ def test_ledger_prevents_duplicate_when_sheet_update_after_send_fails(setup):
     original = store.update
 
     def fail(original_row, changes):
-        if changes.get("Уведомление") == "ДЕМО: записано в файл":
+        if changes.get("Уведомление") == "Записано в файл":
             raise OSError("write failed after send")
         return original(original_row, changes)
 
@@ -197,7 +197,7 @@ def test_proxy_request_contract_without_network(setup):
     assert scorer.score(lead).score == 100
     assert captured["model"] == "openai/gpt-4o-mini"
     assert captured["max_completion_tokens"] == 1600
-    assert "Демо студия" not in captured["messages"][1]["content"]
+    assert lead.name not in captured["messages"][1]["content"]
 
 
 def test_targeted_cached_run_does_not_score_or_send(setup):

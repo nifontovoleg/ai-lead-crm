@@ -83,7 +83,7 @@ def run_pipeline(settings, store, scorer, notifier, ledger, *, lead_id=None, all
             event = event_key(cache_event, settings.threshold, notifier.transport)
             state = ledger.state(event)
             if state:
-                store.update(row, {"Приоритет": "Горячий", "Уведомление": "ДЕМО: записано в файл" if state == "sent" and settings.mode == "demo" else "Отправлено" if state == "sent" else "Проверить доставку вручную"})
+                store.update(row, {"Приоритет": "Горячий", "Уведомление": "Записано в файл" if state == "sent" and settings.mode == "demo" else "Отправлено" if state == "sent" else "Проверить доставку вручную"})
                 continue
             # Сначала проверяем неизменность строки и фиксируем намерение отправки.
             try:
@@ -93,7 +93,7 @@ def run_pipeline(settings, store, scorer, notifier, ledger, *, lead_id=None, all
                 continue
             if not ledger.claim(event):
                 continue
-            text = (f"{'ДЕМО · ' if settings.mode == 'demo' else ''}Горячий лид {lead.id}\n"
+            text = (f"Горячий лид {lead.id}\n"
                     f"Клиент: {lead.name}\nОценка: {score}/100\nИсточник: {lead.source}\n"
                     f"Бюджет: {lead.budget} ₽\nСледующий шаг: {row.get('Рекомендация', '')}\n{store.url}")
             try:
@@ -106,7 +106,7 @@ def run_pipeline(settings, store, scorer, notifier, ledger, *, lead_id=None, all
                 # Ledger сохраняется до записи в Google Sheets: сбой Sheets не создаст дубль.
                 ledger.finish(event, "sent")
                 result.notifications += 1
-                store.update(row, {"Уведомление": "ДЕМО: записано в файл" if settings.mode == "demo" else "Отправлено"})
+                store.update(row, {"Уведомление": "Записано в файл" if settings.mode == "demo" else "Отправлено"})
         current = store.rows()
         stats = summarize(current, settings.threshold, scorer.version)
         if hasattr(store, "refresh_dashboard"):
@@ -115,5 +115,5 @@ def run_pipeline(settings, store, scorer, notifier, ledger, *, lead_id=None, all
         atomic_json(report_dir / "analytics.json", stats)
         atomic_json(report_dir / "last_run.json", result.model_dump())
         (report_dir / "crm-dispatch.html").write_text(render_dispatch(current), encoding="utf-8")
-        (report_dir / "dashboard.html").write_text(render_report(current, stats, "ДЕМО · правила без AI" if settings.mode == "demo" else "ProxyAPI · Google Sheets"), encoding="utf-8")
+        (report_dir / "dashboard.html").write_text(render_report(current, stats, "" if settings.mode == "demo" else "ProxyAPI · Google Sheets"), encoding="utf-8")
         return result
